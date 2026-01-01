@@ -5,3 +5,4 @@ datasets
 diffusers 
 torch 
 torchvision
+matplotlib

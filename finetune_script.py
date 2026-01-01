@@ -260,6 +260,7 @@ def get_params_to_save(params):
     return jax.device_get(jax.tree_util.tree_map(lambda x: x[0], params))
 
 def add_kernel_recursive(unet_weights, prefixes=('', 'attentions', 'transformer_blocks', 'attn', 'to_'), key=jax.random.key(0)):
+    unet_weights = jax.tree.map(lambda x: x, unet_weights)
     if len(prefixes) == 0:
         key1, key2 = jax.random.split(key)
         unet_weights['kernel1'] = jax.random.normal(key1, (unet_weights['kernel'].shape[0], 64))
@@ -501,9 +502,10 @@ def main():
         dtype=weight_dtype,
     )
 
+    unet_params = model_sharding(unet_params)
+    unet_clone = unet_params
     unet_params = add_kernel_recursive(unet_params)
     unet_params = model_sharding(unet_params)
-
     # Optimization
     if args.scale_lr:
         args.learning_rate = args.learning_rate * total_train_batch_size
@@ -671,9 +673,9 @@ def main():
         pipeline.save_pretrained(
             args.output_dir,
             params={
-                "text_encoder": get_params_to_save(text_encoder_params),
-                "vae": get_params_to_save(vae_params),
-                "unet": get_params_to_save(state.params),
+                "text_encoder": text_encoder_params,
+                "vae": vae_params,
+                "unet": state.params,
                 "safety_checker": safety_checker.params,
             },
         )
